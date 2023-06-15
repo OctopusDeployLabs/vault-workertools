@@ -91,6 +91,13 @@ jobs:
           VERSION_NUMBER: ${{ needs.get-vault-version.outputs.VERSION }}     
         run: docker push octopuslabs/vault-workertools:$VERSION_NUMBER-ubuntu.2204
         if: ${{ needs.get-vault-version.outputs.CONTINUE == 'Yes' }}
+      
+      - name: Push the latest ubuntu.2204 image
+        env:
+          VERSION_NUMBER: ${{ needs.get-vault-version.outputs.VERSION }}     
+        run: docker push octopuslabs/vault-workertools:latest-ubuntu.2204
+        if: ${{ needs.get-vault-version.outputs.CONTINUE == 'Yes' }}  
+
 
   build-docker-manifest:
     needs: [build-linux, get-vault-version]
