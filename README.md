@@ -8,8 +8,8 @@ The image is built from the `alpine` platform.
 
 ## Tags
 
-The version tag corresponds to the version of HashiCorp vault installed on the image. 
-A new image will be built each time a new version of Octopus CLI is created.  
+The version tag corresponds to the version of HashiCorp Vault installed on the image. 
+A new image will be built each time a new version of HashiCorp Vault is found.  
 
 The tags are as follows:
 - Latest
