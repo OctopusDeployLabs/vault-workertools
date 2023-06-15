@@ -1,8 +1,0 @@
-ARG VAULT_IMAGE=hashicorp/vault:latest
-FROM $VAULT_IMAGE
-
-# Add .NET 6
-RUN apk update && apk upgrade && apk add bash icu-libs krb5-libs libgcc libintl libssl1.1 libstdc++ zlib
-RUN wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh && chmod +x ./dotnet-install.sh
-RUN ./dotnet-install.sh --channel 6.0 --runtime dotnet
-
