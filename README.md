@@ -2,8 +2,6 @@
 
 This repository contains images that contain the tooling necessary to to use the execution container feature with Octopus Deploy when connecting to a HashiCorp vault.
 
-The image is built from the `alpine` platform.
-
 **Note: Please consider this repository provided as is.  If there are any issues please do not contact support.**
 
 ## Tags
