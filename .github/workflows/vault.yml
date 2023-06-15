@@ -80,13 +80,24 @@ jobs:
         run: |
              docker login --username $USERNAME --password "$PASSWORD"
 
-      # Build ubuntu images
       - name: Build the alpine docker image
         env: 
           VERSION_NUMBER: ${{ needs.get-vault-version.outputs.VERSION }}
         run: docker build ./alpine --build-arg VAULT_IMAGE=hashicorp/vault:${{ needs.get-vault-version.outputs.VERSION }} --tag octopuslabs/vault-workertools:${{ needs.get-vault-version.outputs.VERSION }}-alpine --tag octopuslabs/vault-workertools:latest-alpine
         if: ${{ needs.get-vault-version.outputs.CONTINUE == 'Yes' }}
+
+      - name: Build the ubuntu-22.04 Docker image 
+        env:
+          VERSION_NUMBER: ${{ needs.get-vault-version.outputs.VERSION }}     
+        run: docker build ./ubuntu-2204 --tag octopuslabs/vault-workertools:$VERSION_NUMBER-ubuntu.2204 --tag octopuslabs/vault-workertools:latest-ubuntu.2204
+        if: ${{ needs.get-vault-version.outputs.CONTINUE == 'Yes' }}
         
+      - name: Push the ubuntu-22.04 version image
+        env:
+          VERSION_NUMBER: ${{ needs.get-vault-version.outputs.VERSION }}     
+        run: docker push octopuslabs/vault-workertools:$VERSION_NUMBER-ubuntu.2204
+        if: ${{ needs.get-vault-version.outputs.CONTINUE == 'Yes' }}
+
       - name: Push the alpine image
         env:
           VERSION_NUMBER: ${{ needs.get-vault-version.outputs.VERSION }}
@@ -110,8 +121,8 @@ jobs:
         env:
           VERSION_NUMBER: ${{ needs.get-vault-version.outputs.VERSION }}
         run: |
-          docker manifest create octopuslabs/vault-workertools:latest octopuslabs/vault-workertools:latest-alpine
-          docker manifest create octopuslabs/vault-workertools:$VERSION_NUMBER octopuslabs/vault-workertools:$VERSION_NUMBER-alpine
+          docker manifest create octopuslabs/vault-workertools:latest octopuslabs/vault-workertools:latest-ubuntu.2204
+          docker manifest create octopuslabs/vault-workertools:$VERSION_NUMBER octopuslabs/vault-workertools:$VERSION_NUMBER-ubuntu.2204
         if: ${{ needs.get-vault-version.outputs.CONTINUE == 'Yes' }}
 
       - name: Push manifests
