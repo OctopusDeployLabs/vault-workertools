@@ -18,46 +18,52 @@ jobs:
         name: Compare latest version with container
         run: |
           $chocoInformationRaw = choco info vault --limitoutput
-          $version = ($chocoInformationRaw.Split("|"))[1]
-          $versionSplit = $version.Split(".")
-          
-          Write-Host "Retrieving tags ..."
-          
-          $response = try {
-            $repositoryTags = Invoke-RestMethod "https://registry.hub.docker.com/v2/repositories/octopuslabs/vault-workertools/tags"
-            Write-Host "Retrieval successful!"
-          } catch [System.Net.WebException] { 
-            $_.Exception.Response 
-            Write-Host "Retrieval failed!!"
-          }
-          
-          Write-Host "Version: $version"
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-          
-          if ($null -eq $response)
-          {
-            $matchingTag = $repositoryTags.results | Where-Object {$_.Name -eq $version}
-            
-            if ($null -ne $matchingTag)
-            {
-              Write-Host "Docker container already has latest version."
+          $versionOutput = ($chocoInformationRaw.Split("|"))[1]
+
+          [System.Version]$version = $null
+          $versionParsed = [System.Version]::TryParse($versionOutput, [ref]$version)
+          if(-not $versionParsed) {
+              Write-Host "Unable to parse '$versionOutput' as a valid version. Won't continue"
               echo "CONTINUE=No" >> $env:GITHUB_OUTPUT
-            }
-            else
-            {
-              Write-Host "HashiCorp Vault has been updated, create new image."
-              echo "CONTINUE=Yes" >> $env:GITHUB_OUTPUT
-            }
           }
-          else
-          {
-            if ($response.StatusCode.value__ -eq 404)
-            {
-              Write-Host "No tags exist for repo, assuming first build."
-              echo "CONTINUE=Yes" >> $env:GITHUB_OUTPUT
-            }
-          }
+          else {
+              $versionToCompare = "$($version.Major).$($version.Minor).$($version.Build)"
+              Write-Host "Parsed version as $versionToCompare"
+              
+              echo "VERSION=$versionToCompare" >> $env:GITHUB_OUTPUT
           
+              $response = try {
+                $repositoryTags = Invoke-RestMethod "https://registry.hub.docker.com/v2/repositories/octopuslabs/vault-workertools/tags"
+                Write-Host "Retrieval successful!"
+              } catch [System.Net.WebException] { 
+                $_.Exception.Response 
+                Write-Host "Retrieval failed!!"
+              }
+              
+              if ($null -eq $response)
+              {
+                $matchingTag = $repositoryTags.results | Where-Object {$_.Name -eq $versionToCompare}
+                
+                if ($null -ne $matchingTag)
+                {
+                  Write-Host "Docker container already has latest version."
+                  echo "CONTINUE=No" >> $env:GITHUB_OUTPUT
+                }
+                else
+                {
+                  Write-Host "HashiCorp Vault has been updated, create new image."
+                  echo "CONTINUE=Yes" >> $env:GITHUB_OUTPUT
+                }
+              }
+              else
+              {
+                if ($response.StatusCode.value__ -eq 404)
+                {
+                  Write-Host "No tags exist for repo, assuming first build."
+                  echo "CONTINUE=Yes" >> $env:GITHUB_OUTPUT
+                }
+              }
+          }
         shell: powershell
           
   # This workflow contains a single job called "build"
@@ -77,8 +83,8 @@ jobs:
         env:
           USERNAME: ${{ secrets.DOCKER_HUB_USER }}
           PASSWORD: ${{ secrets.DOCKER_HUB_PAT }}
-        run: |
-             docker login --username $USERNAME --password "$PASSWORD"
+        run: docker login --username $USERNAME --password "$PASSWORD"
+        if: ${{ needs.get-vault-version.outputs.CONTINUE == 'Yes' }}
 
       - name: Build the ubuntu-22.04 Docker image 
         env:
@@ -109,7 +115,8 @@ jobs:
           USERNAME: ${{ secrets.DOCKER_HUB_USER }}
           PASSWORD: ${{ secrets.DOCKER_HUB_PAT }}
         run: docker login --username $USERNAME --password "$PASSWORD"
-
+        if: ${{ needs.get-vault-version.outputs.CONTINUE == 'Yes' }}
+        
       - name: Build manifests
         env:
           VERSION_NUMBER: ${{ needs.get-vault-version.outputs.VERSION }}
